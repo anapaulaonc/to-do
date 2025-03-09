@@ -14,5 +14,8 @@
   "type": "module",
   "workspaces": [
     "src/to-do-frontend"
-  ]
+  ],
+  "dependencies": {
+    "react-router-dom": "^7.3.0"
+  }
 }
