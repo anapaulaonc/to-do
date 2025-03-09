@@ -1,17 +1,35 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { to_do_backend } from '../../declarations/to-do-backend';
+import { AuthClient } from "@dfinity/auth-client";
 
 
-function tarefas() {
+function Tarefas() {
     const [tarefas, setTarefas] = useState([]);
     const [totalEmAndamento, setTotalEmAndamento] = useState(0);
     const [totalConcluidas, setTotalConcluidas] = useState(0);
+    const navigate = useNavigate();
   
     useEffect(() => {
-      consultarTarefas();
-      totalTarefasEmAndamento();
-      totalTarefasConcluidas();
-    }, []);
+      // Verificar se o usuário está autenticado
+      const checkAuth = async () => {
+        // Checar se o usuário está autenticado
+        const isAuthenticated = localStorage.getItem('isAuthenticated');
+        
+        if (!isAuthenticated || isAuthenticated !== 'true') {
+          // Se não estiver autenticado, redirecionar para a página inicial
+          navigate('/');
+          return;
+        }
+  
+        // Se estiver autenticado, carregar os dados
+        consultarTarefas();
+        totalTarefasEmAndamento();
+        totalTarefasConcluidas();
+      };
+  
+      checkAuth();
+    }, [navigate]);
     
     async function consultarTarefas(){
       setTarefas(await to_do_backend.getTarefas());    
@@ -29,6 +47,18 @@ function tarefas() {
       setTotalConcluidas(total);
     }
   
+    // Função para fazer logout
+    async function handleLogout() {
+      try {
+        const authClient = await AuthClient.create();
+        await authClient.logout();
+        localStorage.removeItem('isAuthenticated');
+        navigate('/');
+      } catch (error) {
+        console.error("Erro ao fazer logout:", error);
+      }
+    }
+  
     async function handleSubmit(event) {
       event.preventDefault();
   
@@ -37,9 +67,6 @@ function tarefas() {
       const descricao = event.target.elements.descricao.value;    
       const urgente = ((event.target.elements.urgente.value === "false") ? false : true);
   
-      /* Caso o idTarefa for null significa que é um novo cadastro,
-         desta forma será executada a função addTarefa do Canister de backend,
-         caso contrário será executada a função de alteração dos dados de uma tarefa */
       if (idTarefa === null || idTarefa === "") {
         await to_do_backend.addTarefa(descricao, categoria, false, false);            
       } else {
@@ -88,6 +115,16 @@ function tarefas() {
   
     return (
       <main className="mt-[30px] mx-[30px]">
+        {/* Botão de Logout */}
+        <div className="flex justify-end mb-4">
+          <button 
+            onClick={handleLogout} 
+            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300"
+          >
+            Sair
+          </button>
+        </div>
+  
         <form id="formTarefas" className="flex space-x-4" onSubmit={handleSubmit}>
           <div className="w-[15%]">
             <select id="categoria" className="block w-full px-4 py-4 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
@@ -236,4 +273,4 @@ function tarefas() {
     );
   }
   
-  export default tarefas;
+  export default Tarefas;
